@@ -1,0 +1,67 @@
+{
+  "name": "Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0f7256b2-d94e-40ba-b87b-0ec03868faaf",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO error_log (workflow, error_mensaje, datos_entrada)\nVALUES (\n  '{{ $json.workflow.name }}',\n  '{{ $json.execution.error.message }}',\n  '{{ $json.execution.lastNodeExecuted }}'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "055c3fab-faf0-4eaa-afe8-b7040ec0f43a",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "YezDfnkeOU0dXfX6",
+          "name": "Postgres account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "RBSK865tW62GsLau",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "785e631d-d687-495d-8553-620ad8011615",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "022fd8cfe053e5ed93b2fd06ba2f4acaa51debbc8a0d11ab13d0ef0f9c6de79c"
+  },
+  "id": "RBSK865tW62GsLau",
+  "tags": []
+}

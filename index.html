@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HelpDesk Pro — Sistema de Tickets</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ─── TOKENS ───────────────────────────────────── */
+    :root {
+      --bg:        #0b0f1a;
+      --surface:   #111827;
+      --surface2:  #1a2235;
+      --border:    rgba(255,255,255,0.07);
+      --accent:    #00e5ff;
+      --accent2:   #7c3aed;
+      --danger:    #ef4444;
+      --warn:      #f59e0b;
+      --ok:        #10b981;
+      --muted:     #4b5563;
+      --text:      #e2e8f0;
+      --text-sub:  #94a3b8;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius:    12px;
+      --radius-lg: 18px;
+      --shadow:    0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    /* ─── RESET ────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── NOISE OVERLAY ─────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    /* ─── LAYOUT ─────────────────────────────────────── */
+    .wrapper {
+      position: relative; z-index: 1;
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ─── HEADER ─────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 36px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .logo-text h1 {
+      font-family: var(--font-head);
+      font-size: 1.3rem; font-weight: 800;
+      letter-spacing: -.02em; color: var(--text);
+    }
+    .logo-text span { font-size: 0.75rem; color: var(--text-sub); font-weight: 300; }
+    .header-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 14px;
+      font-size: 0.78rem; color: var(--text-sub);
+    }
+    .pulse {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 0 rgba(16,185,129,.6);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0   rgba(16,185,129,.6); }
+      70%  { box-shadow: 0 0 0 8px rgba(16,185,129,0);  }
+      100% { box-shadow: 0 0 0 0   rgba(16,185,129,0);  }
+    }
+
+    /* ─── STATS STRIP ────────────────────────────────── */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+      transition: transform .2s, border-color .2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.14); }
+    .stat-label { font-size: 0.72rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+    .stat-value { font-family: var(--font-head); font-size: 2rem; font-weight: 700; line-height: 1; }
+    .stat-value.accent  { color: var(--accent); }
+    .stat-value.warn    { color: var(--warn); }
+    .stat-value.danger  { color: var(--danger); }
+    .stat-value.ok      { color: var(--ok); }
+
+    /* ─── GRID ───────────────────────────────────────── */
+    .main-grid {
+      display: grid; grid-template-columns: 380px 1fr; gap: 24px;
+      align-items: start;
+    }
+
+    /* ─── CARD ───────────────────────────────────────── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 28px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-family: var(--font-head); font-size: 1rem; font-weight: 700;
+      color: var(--text); margin-bottom: 22px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .icon { font-size: 1.1rem; }
+
+    /* ─── FORM ───────────────────────────────────────── */
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block; font-size: 0.78rem; font-weight: 500;
+      color: var(--text-sub); text-transform: uppercase; letter-spacing: .07em;
+      margin-bottom: 7px;
+    }
+    input[type="text"], textarea, select {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--font-body); font-size: 0.9rem;
+      padding: 10px 14px; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      appearance: none;
+    }
+    input[type="text"]:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,229,255,.08);
+    }
+    textarea { resize: vertical; min-height: 90px; }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      padding-right: 36px; cursor: pointer;
+    }
+
+    /* ─── BTN ────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      font-family: var(--font-head); font-weight: 600; font-size: 0.88rem;
+      border: none; border-radius: 8px; cursor: pointer;
+      padding: 11px 22px; transition: all .2s; user-select: none;
+    }
+    .btn-primary {
+      width: 100%; background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #fff; margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,229,255,.2); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: .45; pointer-events: none; }
+    .btn-danger {
+      background: rgba(239,68,68,.12); color: var(--danger);
+      border: 1px solid rgba(239,68,68,.25); padding: 6px 12px; font-size: 0.78rem;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,.22); }
+
+    /* ─── TOOLBAR ────────────────────────────────────── */
+    .toolbar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .toolbar select {
+      width: auto; font-size: 0.82rem; padding: 8px 34px 8px 12px;
+    }
+    .toolbar .search-box {
+      flex: 1; min-width: 160px; position: relative;
+    }
+    .toolbar .search-box input {
+      padding-left: 34px; font-size: 0.85rem;
+    }
+    .toolbar .search-box::before {
+      content: '🔍';
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 13px; pointer-events: none;
+    }
+    .btn-refresh {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text-sub);
+      border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 1rem;
+      transition: all .2s;
+    }
+    .btn-refresh:hover { color: var(--accent); border-color: var(--accent); transform: rotate(180deg); }
+
+    /* ─── TABLE ──────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto; border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 0.88rem;
+    }
+    thead th {
+      background: var(--surface2); color: var(--text-sub);
+      font-family: var(--font-head); font-size: 0.72rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .08em;
+      padding: 12px 16px; text-align: left; white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td {
+      padding: 13px 16px; color: var(--text); vertical-align: middle;
+    }
+    .td-titulo { font-weight: 500; max-width: 220px; }
+    .td-titulo span {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* ─── BADGES ─────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: .04em;
+      padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+    }
+    .badge::before {
+      content: ''; display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+    /* prioridad */
+    .badge-alta   { background: rgba(239,68,68,.14);  color: #f87171; }
+    .badge-media  { background: rgba(245,158,11,.14); color: #fbbf24; }
+    .badge-baja   { background: rgba(16,185,129,.14); color: #34d399; }
+    /* tipo — alineado con valores reales de n8n */
+    .badge-hardware  { background: rgba(239,68,68,.1);  color: #fca5a5; }
+    .badge-software  { background: rgba(124,58,237,.1); color: #c4b5fd; }
+    .badge-red       { background: rgba(0,229,255,.1);  color: #67e8f9; }
+
+    /* ─── EMPTY & LOADING ─────────────────────────────── */
+    .state-row td {
+      text-align: center; padding: 48px 16px;
+      color: var(--text-sub); font-size: 0.9rem;
+    }
+    .state-icon { font-size: 2.4rem; display: block; margin-bottom: 10px; opacity: .5; }
+    .spinner {
+      width: 22px; height: 22px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .7s linear infinite; display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── TOAST ───────────────────────────────────────── */
+    #toast-container {
+      position: fixed; bottom: 28px; right: 28px;
+      display: flex; flex-direction: column; gap: 10px; z-index: 9999;
+    }
+    .toast {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 18px;
+      font-size: 0.85rem; color: var(--text);
+      box-shadow: var(--shadow); min-width: 240px; max-width: 360px;
+      animation: toastIn .3s ease;
+    }
+    .toast.success { border-left: 3px solid var(--ok); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+    .toast.info    { border-left: 3px solid var(--accent); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ─── MODAL CONFIRM ───────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn .2s ease;
+    }
+    .modal-backdrop.hidden { display: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px; max-width: 380px; width: 90%;
+      box-shadow: var(--shadow);
+    }
+    .modal h3 {
+      font-family: var(--font-head); font-size: 1.1rem; font-weight: 700;
+      margin-bottom: 8px; color: var(--text);
+    }
+    .modal p { color: var(--text-sub); font-size: 0.88rem; margin-bottom: 24px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-cancel {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text-sub); border-radius: 8px; padding: 9px 18px;
+      font-family: var(--font-head); font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-cancel:hover { border-color: rgba(255,255,255,.2); color: var(--text); }
+    .btn-confirm-del {
+      background: var(--danger); color: #fff; border: none;
+      border-radius: 8px; padding: 9px 18px;
+      font-family: var(--font-head); font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; transition: opacity .2s;
+    }
+    .btn-confirm-del:hover { opacity: .85; }
+
+    /* ─── RESPONSIVE ──────────────────────────────────── */
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .stats-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .stats-strip { grid-template-columns: 1fr 1fr; }
+      header { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── TOAST CONTAINER ──────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ─── MODAL CONFIRM DELETE ─────────────────────────────── -->
+<div class="modal-backdrop hidden" id="modal-backdrop">
+  <div class="modal">
+    <h3>⚠️ Eliminar ticket</h3>
+    <p>¿Estás seguro? Esta acción no se puede deshacer y el ticket se eliminará permanentemente.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modal-cancel">Cancelar</button>
+      <button class="btn-confirm-del" id="modal-confirm">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── APP ──────────────────────────────────────────────── -->
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🎫</div>
+      <div class="logo-text">
+        <h1>HelpDesk Pro</h1>
+        <span>Sistema de Gestión de Tickets</span>
+      </div>
+    </div>
+    <div class="header-badge">
+      <div class="pulse"></div>
+      Sistema en línea
+    </div>
+  </header>
+
+  <!-- STATS STRIP -->
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-label">Total Tickets</div>
+      <div class="stat-value accent" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Prioridad Alta</div>
+      <div class="stat-value danger" id="stat-alta">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Prioridad Media</div>
+      <div class="stat-value warn" id="stat-media">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Prioridad Baja</div>
+      <div class="stat-value ok" id="stat-baja">—</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- FORM CARD -->
+    <aside>
+      <div class="card">
+        <div class="card-title"><span class="icon">✏️</span> Nuevo Ticket</div>
+
+        <div class="form-group">
+          <label for="titulo">Título</label>
+          <input type="text" id="titulo" placeholder="Descripción breve del problema…" maxlength="120"/>
+        </div>
+
+        <div class="form-group">
+          <label for="descripcion">Descripción</label>
+          <textarea id="descripcion" placeholder="Detalla el problema, pasos para reproducir, impacto…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="tipo">Tipo</label>
+          <select id="tipo">
+            <option value="">— Seleccionar tipo —</option>
+            <option value="hardware">🖥️ Hardware</option>
+            <option value="software">💾 Software</option>
+            <option value="red">🌐 Red / Conectividad</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="prioridad">Prioridad</label>
+          <select id="prioridad">
+            <option value="">— Seleccionar prioridad —</option>
+            <option value="Alta">🔴 Alta</option>
+            <option value="Media">🟡 Media</option>
+            <option value="Baja">🟢 Baja</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" id="btn-crear" onclick="crearTicket()">
+          <span id="btn-crear-text">Crear Ticket</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- TABLE CARD -->
+    <main>
+      <div class="card">
+        <div class="card-title"><span class="icon">📋</span> Tickets Registrados</div>
+
+        <div class="toolbar">
+          <div class="search-box">
+            <input type="text" id="search-input" placeholder="Buscar tickets…" oninput="filtrarTabla()"/>
+          </div>
+          <select id="filtro-prioridad" onchange="filtrarTabla()">
+            <option value="">Todas las prioridades</option>
+            <option value="Alta">Alta</option>
+            <option value="Media">Media</option>
+            <option value="Baja">Baja</option>
+          </select>
+          <select id="filtro-tipo" onchange="filtrarTabla()">
+            <option value="">Todos los tipos</option>
+            <option value="hardware">Hardware</option>
+            <option value="software">Software</option>
+            <option value="red">Red / Conectividad</option>
+          </select>
+          <button class="btn-refresh" title="Actualizar" onclick="cargarTickets()">↻</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Prioridad</th>
+                <th>Fecha</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-body">
+              <tr class="state-row">
+                <td colspan="6">
+                  <span class="state-icon">⏳</span>
+                  Cargando tickets…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </main>
+
+  </div><!-- /main-grid -->
+</div><!-- /wrapper -->
+
+<!-- ─── JAVASCRIPT ───────────────────────────────────────── -->
+<script>
+  /* ══════════════════════════════════════════
+     CONFIGURACIÓN CENTRAL
+  ══════════════════════════════════════════ */
+  const CONFIG = {
+    API_BASE:    'http://localhost:5678',
+    ENDPOINT_POST:   '/webhook/ticket',
+    ENDPOINT_GET:    '/webhook/listar',
+    ENDPOINT_DELETE: '/webhook/eliminar',   // ← nuevo endpoint sugerido
+  };
+
+  /* ══════════════════════════════════════════
+     ESTADO LOCAL
+  ══════════════════════════════════════════ */
+  let todosLosTickets = [];       // cache completo
+  let pendingDeleteId = null;     // id en espera de confirmación
+
+  /* ══════════════════════════════════════════
+     UTILIDADES — TOAST
+  ══════════════════════════════════════════ */
+  function showToast(msg, type = 'info', duration = 3500) {
+    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+    container.appendChild(el);
+    setTimeout(() => {
+      el.style.transition = 'opacity .3s, transform .3s';
+      el.style.opacity = '0'; el.style.transform = 'translateX(20px)';
+      setTimeout(() => el.remove(), 300);
+    }, duration);
+  }
+
+  /* ══════════════════════════════════════════
+     UTILIDADES — BADGES
+  ══════════════════════════════════════════ */
+  function badgePrioridad(p) {
+    // Normaliza a capitalizada para comparar (por si n8n devuelve minúsculas)
+    const norm = p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : '';
+    const map  = { Alta: 'badge-alta', Media: 'badge-media', Baja: 'badge-baja' };
+    const cls  = map[norm] || '';
+    return `<span class="badge ${cls}">${norm || '—'}</span>`;
+  }
+  function badgeTipo(t) {
+    const labels = { hardware: 'Hardware', software: 'Software', red: 'Red/Conectividad' };
+    const map    = { hardware: 'badge-hardware', software: 'badge-software', red: 'badge-red' };
+    const cls    = map[t] || '';
+    const label  = labels[t] || (t || '—');
+    return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  /* ══════════════════════════════════════════
+     UTILIDADES — FORMATO DE FECHA
+  ══════════════════════════════════════════ */
+  function formatFecha(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-GT', { day:'2-digit', month:'short', year:'numeric' })
+           + ' ' + d.toLocaleTimeString('es-GT', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  /* ══════════════════════════════════════════
+     STATS
+  ══════════════════════════════════════════ */
+  function actualizarStats(tickets) {
+    const norm = t => t.prioridad ? t.prioridad.toLowerCase() : '';
+    document.getElementById('stat-total').textContent = tickets.length;
+    document.getElementById('stat-alta').textContent  = tickets.filter(t => norm(t) === 'alta').length;
+    document.getElementById('stat-media').textContent = tickets.filter(t => norm(t) === 'media').length;
+    document.getElementById('stat-baja').textContent  = tickets.filter(t => norm(t) === 'baja').length;
+  }
+
+  /* ══════════════════════════════════════════
+     RENDER TABLE
+  ══════════════════════════════════════════ */
+  function renderTabla(tickets) {
+    const tbody = document.getElementById('tabla-body');
+
+    if (!tickets || tickets.length === 0) {
+      tbody.innerHTML = `
+        <tr class="state-row">
+          <td colspan="6">
+            <span class="state-icon">📭</span>
+            No hay tickets que mostrar.
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = tickets.map(t => `
+      <tr data-id="${t.id}" data-prioridad="${t.prioridad}" data-tipo="${t.tipo}">
+        <td><strong style="color:var(--text-sub);font-size:.8rem">#${t.id}</strong></td>
+        <td class="td-titulo"><span title="${escapeHtml(t.titulo)}">${escapeHtml(t.titulo)}</span></td>
+        <td>${badgeTipo(t.tipo)}</td>
+        <td>${badgePrioridad(t.prioridad)}</td>
+        <td style="color:var(--text-sub);font-size:.8rem;white-space:nowrap">${formatFecha(t.fecha)}</td>
+        <td>
+          <button class="btn btn-danger" onclick="confirmarEliminar(${t.id})">
+            🗑 Eliminar
+          </button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ══════════════════════════════════════════
+     FILTRAR (cliente)
+  ══════════════════════════════════════════ */
+  function filtrarTabla() {
+    const texto    = document.getElementById('search-input').value.toLowerCase();
+    const prior    = document.getElementById('filtro-prioridad').value;
+    const tipo     = document.getElementById('filtro-tipo').value;
+
+    const filtrados = todosLosTickets.filter(t => {
+      const matchTexto = !texto || 
+        (t.titulo      && t.titulo.toLowerCase().includes(texto)) ||
+        (t.descripcion && t.descripcion.toLowerCase().includes(texto));
+      const matchPrior = !prior || t.prioridad === prior;
+      const matchTipo  = !tipo  || t.tipo === tipo;
+      return matchTexto && matchPrior && matchTipo;
+    });
+
+    renderTabla(filtrados);
+  }
+
+  /* ══════════════════════════════════════════
+     CARGAR TICKETS (GET)
+  ══════════════════════════════════════════ */
+  async function cargarTickets() {
+    const tbody = document.getElementById('tabla-body');
+    tbody.innerHTML = `
+      <tr class="state-row">
+        <td colspan="6">
+          <div class="spinner"></div>
+          <div style="margin-top:10px">Cargando tickets…</div>
+        </td>
+      </tr>`;
+
+    try {
+      const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINT_GET}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      // n8n puede devolver array directo o {data:[...]}
+      todosLosTickets = Array.isArray(data) ? data : (data.data || []);
+
+      actualizarStats(todosLosTickets);
+      filtrarTabla();
+
+    } catch (err) {
+      console.error('Error al cargar tickets:', err);
+      tbody.innerHTML = `
+        <tr class="state-row">
+          <td colspan="6">
+            <span class="state-icon">⚠️</span>
+            Error al cargar tickets.<br>
+            <small style="color:var(--muted)">${err.message}</small>
+          </td>
+        </tr>`;
+      showToast('No se pudo conectar con el servidor.', 'error');
+    }
+  }
+
+  /* ══════════════════════════════════════════
+     CREAR TICKET (POST)
+  ══════════════════════════════════════════ */
+  async function crearTicket() {
+    const titulo      = document.getElementById('titulo').value.trim();
+    const descripcion = document.getElementById('descripcion').value.trim();
+    const tipo        = document.getElementById('tipo').value;
+    const prioridad   = document.getElementById('prioridad').value;
+
+    // Validación
+    if (!titulo)      { showToast('El título es obligatorio.', 'error'); return; }
+    if (!tipo)        { showToast('Selecciona un tipo de ticket.', 'error'); return; }
+    if (!prioridad)   { showToast('Selecciona la prioridad.', 'error'); return; }
+
+    const btn     = document.getElementById('btn-crear');
+    const btnText = document.getElementById('btn-crear-text');
+    btn.disabled  = true;
+    btnText.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span> Guardando…';
+
+    try {
+      // n8n POST sin "Responder al webhook" puede no devolver respuesta limpia
+      // usamos Promise.race para no quedarnos esperando indefinidamente
+      const fetchPromise = fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINT_POST}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titulo, descripcion, tipo, prioridad }),
+      });
+
+      const timeoutPromise = new Promise(resolve => setTimeout(resolve, 4000));
+      await Promise.race([fetchPromise, timeoutPromise]);
+
+      // Limpiar formulario siempre
+      ['titulo','descripcion','tipo','prioridad'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+
+      showToast('Ticket creado correctamente.', 'success');
+      // Espera breve para que n8n termine de escribir en BD antes de leer
+      await new Promise(r => setTimeout(r, 800));
+      await cargarTickets();
+
+    } catch (err) {
+      console.error('Error al crear ticket:', err);
+      // Si es solo falta de respuesta del webhook, igual recargamos
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        showToast('Error de conexión con el servidor.', 'error');
+      } else {
+        // Puede ser que n8n procesó pero no respondió — recargamos igual
+        showToast('Ticket enviado — verificando...', 'info');
+        await new Promise(r => setTimeout(r, 1200));
+        await cargarTickets();
+      }
+    } finally {
+      btn.disabled = false;
+      btnText.textContent = 'Crear Ticket';
+    }
+  }
+
+  /* ══════════════════════════════════════════
+     ELIMINAR TICKET
+  ══════════════════════════════════════════ */
+  function confirmarEliminar(id) {
+    pendingDeleteId = id;
+    document.getElementById('modal-backdrop').classList.remove('hidden');
+  }
+
+  document.getElementById('modal-cancel').addEventListener('click', () => {
+    pendingDeleteId = null;
+    document.getElementById('modal-backdrop').classList.add('hidden');
+  });
+
+  document.getElementById('modal-confirm').addEventListener('click', async () => {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    document.getElementById('modal-backdrop').classList.add('hidden');
+    pendingDeleteId = null;
+
+    try {
+      const res = await fetch(`${CONFIG.API_BASE}${CONFIG.ENDPOINT_DELETE}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      showToast(`Ticket #${id} eliminado.`, 'success');
+      await cargarTickets();
+
+    } catch (err) {
+      console.error('Error al eliminar:', err);
+      showToast('No se pudo eliminar el ticket.', 'error');
+    }
+  });
+
+  // Cerrar modal al hacer click fuera
+  document.getElementById('modal-backdrop').addEventListener('click', function(e) {
+    if (e.target === this) {
+      pendingDeleteId = null;
+      this.classList.add('hidden');
+    }
+  });
+
+  /* ══════════════════════════════════════════
+     INIT
+  ══════════════════════════════════════════ */
+  document.addEventListener('DOMContentLoaded', cargarTickets);
+</script>
+</body>
+</html>

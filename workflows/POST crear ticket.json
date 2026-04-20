@@ -1,0 +1,204 @@
+{
+  "name": "POST crear ticket",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ticket",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "184620b1-e6c7-4dd1-a544-0c3347fe0587",
+      "name": "Webhook",
+      "webhookId": "30680f0a-6349-4fb8-9f1b-13cf55200047"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const body = item.json.body || item.json;\n  const titulo = (body.titulo || '').toLowerCase();\n  \n  let tipo = \"software\";\n  if (titulo.includes(\"impresora\") || titulo.includes(\"cpu\") || titulo.includes(\"monitor\")) {\n    tipo = \"hardware\";\n  } else if (titulo.includes(\"internet\") || titulo.includes(\"red\")) {\n    tipo = \"red\";\n  }\n  \n  item.json.titulo     = body.titulo;\n  item.json.descripcion = body.descripcion;\n  item.json.tipo       = tipo;\n  item.json.prioridad  = body.prioridad;\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        0
+      ],
+      "id": "3af8b0b9-8afd-4d70-940d-5f8ed0434165",
+      "name": "Codigo_tipo"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const prioridad = (item.json.prioridad || '').toLowerCase();\n  \n  if (prioridad === 'alta') {\n    item.json.prioridad = 'alta';\n  } else if (prioridad === 'media') {\n    item.json.prioridad = 'media';\n  } else {\n    item.json.prioridad = 'baja';\n  }\n  \n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        0
+      ],
+      "id": "48049317-63d2-4554-85cd-cf818ab168c0",
+      "name": "Codigo_prioridad"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO tickets (titulo, descripcion, tipo, prioridad)\nVALUES ('{{ $json.titulo }}', '{{ $json.descripcion }}', '{{ $json.tipo }}', '{{ $json.prioridad }}');",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        688,
+        0
+      ],
+      "id": "21ddc17f-4ad8-4e3b-9c7e-b6a4761cef73",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "YezDfnkeOU0dXfX6",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3fb92b16-6385-451b-a823-1d7f60695405",
+              "name": "titulo",
+              "value": "={{$json[\"titulo\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "0d067b8d-ca76-439f-a151-80dc561b7936",
+              "name": "descripcion",
+              "value": "={{$json[\"descripcion\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "a982bf06-865a-41a7-af63-63d693c458ef",
+              "name": "tipo",
+              "value": "={{$json[\"tipo\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "2f17d3b2-4d91-4e73-9e7a-22d24aa11e50",
+              "name": "prioridad",
+              "value": "={{$json[\"prioridad\"]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        0
+      ],
+      "id": "190f0f2a-82e1-4672-81ec-20474287f360",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_log (accion, ticket_id, detalle, estado)\nVALUES (\n  'CREAR_TICKET',\n  (SELECT MAX(id) FROM tickets),\n  'Ticket creado: ' || '{{ $json.titulo }}',\n  'exitoso'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        896,
+        0
+      ],
+      "id": "fc266ccd-b44f-407c-927f-3d3608cc9418",
+      "name": "BITACORA",
+      "credentials": {
+        "postgres": {
+          "id": "YezDfnkeOU0dXfX6",
+          "name": "Postgres account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Codigo_tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Codigo_tipo": {
+      "main": [
+        [
+          {
+            "node": "Codigo_prioridad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Codigo_prioridad": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "BITACORA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "RBSK865tW62GsLau",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "d6147c01-84a0-47c4-aacf-f46eda7e462d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "022fd8cfe053e5ed93b2fd06ba2f4acaa51debbc8a0d11ab13d0ef0f9c6de79c"
+  },
+  "id": "VLj5il8DRpAwD1zI",
+  "tags": []
+}
